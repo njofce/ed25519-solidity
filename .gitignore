@@ -1,0 +1,18 @@
+**/cache
+**/node_modules
+**/out
+**/typechain
+
+# files
+*.env
+*.acc_details
+*.log
+.DS_Store
+
+# broadcasts
+!/broadcast
+# /broadcast/*
+/broadcast/*/31337/
+
+
+.idea/
