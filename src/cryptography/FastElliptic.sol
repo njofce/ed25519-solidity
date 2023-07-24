@@ -233,10 +233,7 @@ contract FastElliptic {
     /**
      * @dev Check if a point in affine coordinates is on the curve (reject Neutral that is indeed on the curve).
      */
-    function ecAff_isOnCurve(
-        uint256 x,
-        uint256 y
-    ) internal pure returns (bool) {
+    function ecAff_isOnCurve(uint256 x, uint256 y) public pure returns (bool) {
         if (0 == x || x == p || 0 == y || y == p) {
             return false;
         }
@@ -1101,7 +1098,7 @@ contract FastElliptic {
         bytes32 message,
         uint256[2] calldata rs,
         address Shamir8
-    ) internal returns (bool) {
+    ) public returns (bool) {
         if (rs[0] == 0 || rs[0] >= n || rs[1] == 0) {
             return false;
         }
