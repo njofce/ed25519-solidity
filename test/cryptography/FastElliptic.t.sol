@@ -16,23 +16,11 @@ contract Wrap_ecdsa_precal_hackmem {
     //compute the coefficients for multibase exponentiation, then their wnaf representation
     //note that this function can be implemented in the front to reduce tx cost
 
-    function wrap_ecdsa_core(
-        bytes32 message,
-        uint256[2] calldata rs
-    ) public returns (bool) {
-        return
-            FCL_Elliptic_ZZ.ecdsa_precomputed_hackmem(
-                message,
-                rs,
-                precomputations
-            );
+    function wrap_ecdsa_core(bytes32 message, uint256[2] calldata rs) public returns (bool) {
+        return FCL_Elliptic_ZZ.ecdsa_precomputed_hackmem(message, rs, precomputations);
     }
 
-    function wrap_ecdsa_core_addr(
-        bytes32 message,
-        uint256[2] calldata rs,
-        address shamir
-    ) public returns (bool) {
+    function wrap_ecdsa_core_addr(bytes32 message, uint256[2] calldata rs, address shamir) public returns (bool) {
         return FCL_Elliptic_ZZ.ecdsa_precomputed_verify(message, rs, shamir);
     }
 
@@ -88,26 +76,16 @@ contract FastEllipticCurveTest is Test {
     function testValidateSignature_WithPrecomputations_Valid() public {
         address i_address = address(64);
 
-        string memory deployData = vm.readFile(
-            "./src/precompiled/fcl_ecdsa_precbytecode.json"
-        );
-        bytes memory prec = abi.decode(
-            vm.parseJson(deployData, ".Bytecode"),
-            (bytes)
-        );
+        string memory deployData = vm.readFile("./src/precompiled/fcl_ecdsa_precbytecode.json");
+        bytes memory prec = abi.decode(vm.parseJson(deployData, ".Bytecode"), (bytes));
         uint256 estimated_size = 12; //sizeof contract, to be estimated
 
         uint256 checkpointGasLeft;
         uint256 checkpointGasLeft2;
 
-        bytes memory bytecode = abi.encodePacked(
-            type(Wrap_ecdsa_precal_hackmem).runtimeCode
-        );
+        bytes memory bytecode = abi.encodePacked(type(Wrap_ecdsa_precal_hackmem).runtimeCode);
 
-        bytes memory bytecodeC = abi.encodePacked(
-            type(Wrap_ecdsa_precal_hackmem).creationCode,
-            abi.encode(0)
-        );
+        bytes memory bytecodeC = abi.encodePacked(type(Wrap_ecdsa_precal_hackmem).creationCode, abi.encode(0));
         bytecodeC = bytes.concat(bytecodeC, prec);
 
         estimated_size = bytecode.length;
@@ -120,12 +98,7 @@ contract FastEllipticCurveTest is Test {
 
         address deployed;
         assembly {
-            deployed := create2(
-                callvalue(),
-                add(bytecodeC, 0x20),
-                mload(bytecodeC),
-                11
-            )
+            deployed := create2(callvalue(), add(bytecodeC, 0x20), mload(bytecodeC), 11)
         }
 
         console.log("Deployed", deployed);
@@ -133,10 +106,7 @@ contract FastEllipticCurveTest is Test {
         console.log("Deployed length", deployed.code.length);
 
         checkpointGasLeft2 = gasleft();
-        console.log(
-            "deployment of precomputation cost:",
-            checkpointGasLeft - checkpointGasLeft2 - 100
-        );
+        console.log("deployment of precomputation cost:", checkpointGasLeft - checkpointGasLeft2 - 100);
 
         Wrap_ecdsa_precal_hackmem wrap2 = Wrap_ecdsa_precal_hackmem(i_address);
         wrap2.change_offset(estimated_size);
@@ -153,18 +123,12 @@ contract FastEllipticCurveTest is Test {
         );
         verifyGas2 = gasleft();
 
-        console.log(
-            "gas cost for precomputed verify:",
-            verifyGas1 - verifyGas2 - 100
-        );
+        console.log("gas cost for precomputed verify:", verifyGas1 - verifyGas2 - 100);
 
         assertTrue(res);
     }
 
-    function find_offset(
-        bytes memory bytecode,
-        uint256 magic_value
-    ) public returns (uint256 offset) {
+    function find_offset(bytes memory bytecode, uint256 magic_value) public returns (uint256 offset) {
         uint256 read_value;
         uint256 offset;
         uint256 offset2;

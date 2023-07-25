@@ -22,11 +22,7 @@ interface IMFAAccount {
      * @param   _precomutations  The precomputed bytecode with an 8-dimensional table for Shamir's trick from device's public key.
      * @param   _signature  The signature associated with the account. This is not a device signature, but the signature associated with the account.
      */
-    function addDevice(
-        uint32 _deviceId,
-        bytes memory _precomutations,
-        bytes memory _signature
-    ) external;
+    function addDevice(uint32 _deviceId, bytes memory _precomutations, bytes memory _signature) external;
 
     /**
      * @notice  Remove an existing WebAuthn device that is linked to the account.
@@ -46,8 +42,5 @@ interface IMFAAccount {
      * @param   _signature  The provided WebAuthn signature.
      * @return  bytes4  Returns the magic bytes if signature is invalid.
      */
-    function isValidDeviceSignature(
-        bytes32 _hash,
-        P256Signature calldata _signature
-    ) external returns (bytes4);
+    function isValidDeviceSignature(bytes32 _hash, P256Signature calldata _signature) external returns (bytes4);
 }

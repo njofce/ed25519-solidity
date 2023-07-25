@@ -43,51 +43,30 @@ contract WebAuthnMFAAccount is IMFAAccount {
         owner = _owner;
     }
 
-    function addDevice(
-        uint32 _deviceId,
-        bytes memory _precomutations,
-        bytes memory _signature
-    ) external onlyOwner {
+    function addDevice(uint32 _deviceId, bytes memory _precomutations, bytes memory _signature) external onlyOwner {
         if (deviceId != NULL) {
             revert DeviceConnected(deviceId);
         }
-
         // TODO: Validate the provided _account_ signature?
 
-        bytes memory precalcContractBytecode = abi.encodePacked(
-            type(WrapECDSAPrecalculations).creationCode
-        );
-
-        bytes memory precalcContractBytecodeRuntime = abi.encodePacked(
-            type(WrapECDSAPrecalculations).runtimeCode
-        );
+        bytes memory precalcContractBytecodeRuntime = abi.encodePacked(type(WrapECDSAPrecalculations).runtimeCode);
 
         uint256 _precomputationsOffset = precalcContractBytecodeRuntime.length;
 
-        precalcContractBytecode = bytes.concat(
-            precalcContractBytecode,
-            _precomutations
-        );
+        bytes memory precalcContractBytecode = abi.encodePacked(type(WrapECDSAPrecalculations).creationCode);
 
-        // TODO: Provide precomputations address as a function argument.
-        address _precomputationsAddress = address(64);
+        precalcContractBytecode = bytes.concat(precalcContractBytecode, _precomutations);
 
         address deployed;
         assembly {
-            deployed := create(
-                0,
-                add(precalcContractBytecode, 0x20),
-                mload(precalcContractBytecode)
-            )
+            deployed := create(0, add(precalcContractBytecode, 0x20), mload(precalcContractBytecode))
         }
 
-        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(
-            _precomputationsAddress
-        );
+        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(deployed);
         precomputed.change_offset(_precomputationsOffset);
 
         deviceId = _deviceId;
-        precomputationsAddress = _precomputationsAddress;
+        precomputationsAddress = deployed;
         precomputationsOffset = _precomputationsOffset;
     }
 
@@ -106,18 +85,10 @@ contract WebAuthnMFAAccount is IMFAAccount {
     }
 
     // TODO: this needs to be view ideally, check the smart contract for details.
-    function isValidDeviceSignature(
-        bytes32 hash,
-        P256Signature calldata signature
-    ) external returns (bytes4) {
-        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(
-            precomputationsAddress
-        );
+    function isValidDeviceSignature(bytes32 hash, P256Signature calldata signature) external returns (bytes4) {
+        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(precomputationsAddress);
 
-        bool isValid = precomputed.isSignatureValid(
-            hash,
-            [signature.R, signature.S]
-        );
+        bool isValid = precomputed.isSignatureValid(hash, [signature.R, signature.S]);
 
         if (isValid) {
             return MAGICVALUE;

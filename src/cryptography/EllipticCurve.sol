@@ -2,21 +2,14 @@ pragma solidity ^0.8.13;
 
 contract EllipticCurve {
     // Set parameters for curve.
-    uint constant a =
-        0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC;
-    uint constant b =
-        0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B;
-    uint constant gx =
-        0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
-    uint constant gy =
-        0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
-    uint constant p =
-        0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF;
-    uint constant n =
-        0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
+    uint256 constant a = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC;
+    uint256 constant b = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B;
+    uint256 constant gx = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
+    uint256 constant gy = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
+    uint256 constant p = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF;
+    uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
 
-    uint constant lowSmax =
-        0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+    uint256 constant lowSmax = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
     uint256 private constant U255_MAX_PLUS_1 =
         57896044618658097711785492504343953926634992332820282019728792003956564819968;
@@ -24,7 +17,7 @@ contract EllipticCurve {
     /**
      * @dev Inverse of u in the field of modulo m.
      */
-    function inverseMod(uint256 _x, uint256 _pp) public pure returns (uint) {
+    function inverseMod(uint256 _x, uint256 _pp) public pure returns (uint256) {
         require(_x != 0 && _x != _pp && _pp != 0, "Invalid number");
         uint256 q = 0;
         uint256 newT = 1;
@@ -42,10 +35,7 @@ contract EllipticCurve {
     /**
      * @dev Transform affine coordinates into projective coordinates.
      */
-    function toProjectivePoint(
-        uint x0,
-        uint y0
-    ) public pure returns (uint[3] memory P) {
+    function toProjectivePoint(uint256 x0, uint256 y0) public pure returns (uint256[3] memory P) {
         P[2] = addmod(0, 1, p);
         P[0] = mulmod(x0, P[2], p);
         P[1] = mulmod(y0, P[2], p);
@@ -54,14 +44,13 @@ contract EllipticCurve {
     /**
      * @dev Add two points in affine coordinates and return projective point.
      */
-    function addAndReturnProjectivePoint(
-        uint x1,
-        uint y1,
-        uint x2,
-        uint y2
-    ) public pure returns (uint[3] memory P) {
-        uint x;
-        uint y;
+    function addAndReturnProjectivePoint(uint256 x1, uint256 y1, uint256 x2, uint256 y2)
+        public
+        pure
+        returns (uint256[3] memory P)
+    {
+        uint256 x;
+        uint256 y;
         (x, y) = add(x1, y1, x2, y2);
         P = toProjectivePoint(x, y);
     }
@@ -69,12 +58,8 @@ contract EllipticCurve {
     /**
      * @dev Transform from projective to affine coordinates.
      */
-    function toAffinePoint(
-        uint x0,
-        uint y0,
-        uint z0
-    ) public pure returns (uint x1, uint y1) {
-        uint z0Inv;
+    function toAffinePoint(uint256 x0, uint256 y0, uint256 z0) public pure returns (uint256 x1, uint256 y1) {
+        uint256 z0Inv;
         z0Inv = inverseMod(z0, p);
         x1 = mulmod(x0, z0Inv, p);
         y1 = mulmod(y0, z0Inv, p);
@@ -83,21 +68,21 @@ contract EllipticCurve {
     /**
      * @dev Return the zero curve in projective coordinates.
      */
-    function zeroProj() public pure returns (uint x, uint y, uint z) {
+    function zeroProj() public pure returns (uint256 x, uint256 y, uint256 z) {
         return (0, 1, 0);
     }
 
     /**
      * @dev Return the zero curve in affine coordinates.
      */
-    function zeroAffine() public pure returns (uint x, uint y) {
+    function zeroAffine() public pure returns (uint256 x, uint256 y) {
         return (0, 0);
     }
 
     /**
      * @dev Check if the curve is the zero curve.
      */
-    function isZeroCurve(uint x0, uint y0) public pure returns (bool isZero) {
+    function isZeroCurve(uint256 x0, uint256 y0) public pure returns (bool isZero) {
         if (x0 == 0 && y0 == 0) {
             return true;
         }
@@ -107,13 +92,13 @@ contract EllipticCurve {
     /**
      * @dev Check if a point in affine coordinates is on the curve.
      */
-    function isOnCurve(uint x, uint y) public pure returns (bool) {
+    function isOnCurve(uint256 x, uint256 y) public pure returns (bool) {
         if (0 == x || x == p || 0 == y || y == p) {
             return false;
         }
 
-        uint LHS = mulmod(y, y, p); // y^2
-        uint RHS = mulmod(mulmod(x, x, p), x, p); // x^3
+        uint256 LHS = mulmod(y, y, p); // y^2
+        uint256 RHS = mulmod(mulmod(x, x, p), x, p); // x^3
 
         if (a != 0) {
             RHS = addmod(RHS, mulmod(x, a, p), p); // x^3 + a*x
@@ -129,15 +114,11 @@ contract EllipticCurve {
      * @dev Double an elliptic curve point in projective coordinates. See
      * https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
      */
-    function twiceProj(
-        uint x0,
-        uint y0,
-        uint z0
-    ) public pure returns (uint x1, uint y1, uint z1) {
-        uint t;
-        uint u;
-        uint v;
-        uint w;
+    function twiceProj(uint256 x0, uint256 y0, uint256 z0) public pure returns (uint256 x1, uint256 y1, uint256 z1) {
+        uint256 t;
+        uint256 u;
+        uint256 v;
+        uint256 w;
 
         if (isZeroCurve(x0, y0)) {
             return zeroProj();
@@ -178,18 +159,15 @@ contract EllipticCurve {
      * @dev Add two elliptic curve points in projective coordinates. See
      * https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
      */
-    function addProj(
-        uint x0,
-        uint y0,
-        uint z0,
-        uint x1,
-        uint y1,
-        uint z1
-    ) public pure returns (uint x2, uint y2, uint z2) {
-        uint t0;
-        uint t1;
-        uint u0;
-        uint u1;
+    function addProj(uint256 x0, uint256 y0, uint256 z0, uint256 x1, uint256 y1, uint256 z1)
+        public
+        pure
+        returns (uint256 x2, uint256 y2, uint256 z2)
+    {
+        uint256 t0;
+        uint256 t1;
+        uint256 u0;
+        uint256 u1;
 
         if (isZeroCurve(x0, y0)) {
             return (x1, y1, z1);
@@ -217,18 +195,16 @@ contract EllipticCurve {
     /**
      * @dev Helper function that splits addProj to avoid too many local variables.
      */
-    function addProj2(
-        uint v,
-        uint u0,
-        uint u1,
-        uint t1,
-        uint t0
-    ) private pure returns (uint x2, uint y2, uint z2) {
-        uint u;
-        uint u2;
-        uint u3;
-        uint w;
-        uint t;
+    function addProj2(uint256 v, uint256 u0, uint256 u1, uint256 t1, uint256 t0)
+        private
+        pure
+        returns (uint256 x2, uint256 y2, uint256 z2)
+    {
+        uint256 u;
+        uint256 u2;
+        uint256 u3;
+        uint256 w;
+        uint256 t;
 
         t = addmod(t0, p - t1, p);
         u = addmod(u0, p - u1, p);
@@ -256,13 +232,8 @@ contract EllipticCurve {
     /**
      * @dev Add two elliptic curve points in affine coordinates.
      */
-    function add(
-        uint x0,
-        uint y0,
-        uint x1,
-        uint y1
-    ) public pure returns (uint, uint) {
-        uint z0;
+    function add(uint256 x0, uint256 y0, uint256 x1, uint256 y1) public pure returns (uint256, uint256) {
+        uint256 z0;
 
         (x0, y0, z0) = addProj(x0, y0, 1, x1, y1, 1);
 
@@ -272,8 +243,8 @@ contract EllipticCurve {
     /**
      * @dev Double an elliptic curve point in affine coordinates.
      */
-    function twice(uint x0, uint y0) public pure returns (uint, uint) {
-        uint z0;
+    function twice(uint256 x0, uint256 y0) public pure returns (uint256, uint256) {
+        uint256 z0;
 
         (x0, y0, z0) = twiceProj(x0, y0, 1);
 
@@ -283,16 +254,12 @@ contract EllipticCurve {
     /**
      * @dev Multiply an elliptic curve point by a 2 power base (i.e., (2^exp)*P)).
      */
-    function multiplyPowerBase2(
-        uint x0,
-        uint y0,
-        uint exp
-    ) public pure returns (uint, uint) {
-        uint base2X = x0;
-        uint base2Y = y0;
-        uint base2Z = 1;
+    function multiplyPowerBase2(uint256 x0, uint256 y0, uint256 exp) public pure returns (uint256, uint256) {
+        uint256 base2X = x0;
+        uint256 base2Y = y0;
+        uint256 base2Z = 1;
 
-        for (uint i = 0; i < exp; i++) {
+        for (uint256 i = 0; i < exp; i++) {
             (base2X, base2Y, base2Z) = twiceProj(base2X, base2Y, base2Z);
         }
 
@@ -302,11 +269,7 @@ contract EllipticCurve {
     /**
      * @dev Multiply an elliptic curve point by a scalar.
      */
-    function multiplyScalar(
-        uint x0,
-        uint y0,
-        uint scalar
-    ) public pure returns (uint x1, uint y1) {
+    function multiplyScalar(uint256 x0, uint256 y0, uint256 scalar) public pure returns (uint256 x1, uint256 y1) {
         if (scalar == 0) {
             return zeroAffine();
         } else if (scalar == 1) {
@@ -315,10 +278,10 @@ contract EllipticCurve {
             return twice(x0, y0);
         }
 
-        uint base2X = x0;
-        uint base2Y = y0;
-        uint base2Z = 1;
-        uint z1 = 1;
+        uint256 base2X = x0;
+        uint256 base2Y = y0;
+        uint256 base2Z = 1;
+        uint256 z1 = 1;
         x1 = x0;
         y1 = y0;
 
@@ -344,20 +307,14 @@ contract EllipticCurve {
     /**
      * @dev Multiply the curve's generator point by a scalar.
      */
-    function multipleGeneratorByScalar(
-        uint scalar
-    ) public pure returns (uint, uint) {
+    function multipleGeneratorByScalar(uint256 scalar) public pure returns (uint256, uint256) {
         return multiplyScalar(gx, gy, scalar);
     }
 
     /**
      * @dev Validate combination of message, signature, and public key.
      */
-    function validateSignature(
-        bytes32 message,
-        uint[2] memory rs,
-        uint[2] memory Q
-    ) public pure returns (bool) {
+    function validateSignature(bytes32 message, uint256[2] memory rs, uint256[2] memory Q) public pure returns (bool) {
         // To disambiguate between public key solutions, include comment below.
         if (rs[0] == 0 || rs[0] >= n || rs[1] == 0) {
             // || rs[1] > lowSmax)
@@ -367,22 +324,22 @@ contract EllipticCurve {
             return false;
         }
 
-        uint x1;
-        uint x2;
-        uint y1;
-        uint y2;
+        uint256 x1;
+        uint256 x2;
+        uint256 y1;
+        uint256 y2;
 
-        uint sInv = inverseMod(rs[1], n);
+        uint256 sInv = inverseMod(rs[1], n);
 
-        (x1, y1) = multiplyScalar(gx, gy, mulmod(uint(message), sInv, n));
+        (x1, y1) = multiplyScalar(gx, gy, mulmod(uint256(message), sInv, n));
         (x2, y2) = multiplyScalar(Q[0], Q[1], mulmod(rs[0], sInv, n));
-        uint[3] memory P = addAndReturnProjectivePoint(x1, y1, x2, y2);
+        uint256[3] memory P = addAndReturnProjectivePoint(x1, y1, x2, y2);
 
         if (P[2] == 0) {
             return false;
         }
 
-        uint Px = inverseMod(P[2], p);
+        uint256 Px = inverseMod(P[2], p);
         Px = mulmod(P[0], mulmod(Px, Px, p), p);
 
         return Px % n == rs[0];

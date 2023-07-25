@@ -29,21 +29,8 @@ contract WrapECDSAPrecalculations {
     //compute the coefficients for multibase exponentiation, then their wnaf representation
     //note that this function can be implemented in the front to reduce tx cost
 
-    function isSignatureValid(
-        bytes32 message,
-        uint256[2] calldata rs
-    ) public returns (bool) {
-        return
-            FCL_Elliptic_ZZ.ecdsa_precomputed_hackmem(
-                message,
-                rs,
-                precomputations
-            );
-    }
-
-    //provide the offset of precomputations in the contract
-    constructor(uint256 offset_bytecode) {
-        precomputations = offset_bytecode;
+    function isSignatureValid(bytes32 message, uint256[2] calldata rs) public returns (bool) {
+        return FCL_Elliptic_ZZ.ecdsa_precomputed_hackmem(message, rs, precomputations);
     }
 
     function change_offset(uint256 new_offset) public {
