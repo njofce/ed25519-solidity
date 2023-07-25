@@ -1,0 +1,14 @@
+[package]
+name = "precomputations_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.3.1"
+dotenv = "0.15.0"
+serde = { version = "1.0.159" , features = ["derive"] }
+serde_json = "1.0.103"
+sha256 = "1.2.2"
+unescape = "0.1.0"

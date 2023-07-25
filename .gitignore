@@ -3,6 +3,11 @@
 **/out
 **/typechain
 
+.env
+./*/.env
+./*/target
+/precomputations_server/target
+
 # files
 *.env
 *.acc_details
