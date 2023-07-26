@@ -1,3 +1,3 @@
 FILENAME=$1
 
-rm crypto/$FILENAME.json
+rm $FILENAME.json
