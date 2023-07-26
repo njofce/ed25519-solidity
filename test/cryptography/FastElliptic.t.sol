@@ -86,7 +86,6 @@ contract FastEllipticCurveTest is Test {
     }
 
     function testValidateSignature_WithPrecomputations_Valid() public {
-        address i_address = address(64);
 
         string memory deployData = vm.readFile(
             "./src/precompiled/fcl_ecdsa_precbytecode.json"
@@ -111,12 +110,11 @@ contract FastEllipticCurveTest is Test {
         bytecodeC = bytes.concat(bytecodeC, prec);
 
         estimated_size = bytecode.length;
-        bytecode = bytes.concat(bytecode, prec);
 
         console.log("size contract=", estimated_size);
-        console.log("size contract+prec=", bytecode.length);
+        console.log("size contract+prec=", bytecodeC.length);
         checkpointGasLeft = gasleft();
-        vm.etch(i_address, bytecode);
+        // vm.etch(i_address, bytecode);
 
         address deployed;
         assembly {
@@ -138,8 +136,11 @@ contract FastEllipticCurveTest is Test {
             checkpointGasLeft - checkpointGasLeft2 - 100
         );
 
-        Wrap_ecdsa_precal_hackmem wrap2 = Wrap_ecdsa_precal_hackmem(i_address);
-        wrap2.change_offset(estimated_size);
+        Wrap_ecdsa_precal_hackmem wrap2 = Wrap_ecdsa_precal_hackmem(deployed);
+
+        uint256 offset = find_offset(bytecodeC, _MAGIC_ENCODING);
+        console.log("offsetFound", offset);
+        wrap2.change_offset(offset);
 
         uint256 verifyGas1;
         uint256 verifyGas2;
