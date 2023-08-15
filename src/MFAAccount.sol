@@ -10,7 +10,13 @@ import "./cryptography/WrapECDSAPrecalculations.sol";
  * @notice  A base implementation.
  */
 
+// TODO: We need a proxy-based deployment for this.
+// TODO: We need an example factory for deploying this contract alongside the AA account contract.
+// TODO: We need to provide UserOp callData examples that specify adding of a device, removing a device, and validating device signature
+
 contract WebAuthnMFAAccount is IMFAAccount {
+    string public constant name = "WebAuthnMFAAccount";
+
     // bytes4(keccak256("isValidDeviceSignature(bytes32,P256Signature)")
     bytes4 internal constant MAGICVALUE = 0x1626ba7e; // TODO: Compute
 
@@ -51,8 +57,6 @@ contract WebAuthnMFAAccount is IMFAAccount {
         if (deviceId != NULL) {
             revert DeviceConnected(deviceId);
         }
-
-        // TODO: Validate the provided _account_ signature?
 
         bytes memory precalcContractBytecode = abi.encodePacked(
             type(WrapECDSAPrecalculations).creationCode

@@ -10,3 +10,8 @@ struct P256Signature {
     uint256 R;
     uint256 S;
 }
+
+struct DevicePublicKey {
+    uint256 x;
+    uint256 y;
+}
