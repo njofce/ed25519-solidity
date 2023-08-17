@@ -71,6 +71,10 @@ contract WebAuthnAccount is IAccount, Initializable {
         emit WebAuthnAccountInitialized(_entryPoint, _precomputationsAddress);
     }
 
+    function getCredentialId() public view returns (string memory) {
+        return _credentialId;
+    }
+
     function validateUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
@@ -151,7 +155,7 @@ contract WebAuthnAccount is IAccount, Initializable {
         // Encode the expected account challenge based on smart contract data
         bytes memory challengeEncoded = abi.encodePacked(
             Base64URL.encode32(
-                abi.encodePacked("123456") // TODO: Challenge must be some concatenation of address:nonce or just sc nonce
+                abi.encodePacked("nonce2") // TODO: Challenge must be some concatenation of address:nonce or just sc nonce
             )
         );
 
