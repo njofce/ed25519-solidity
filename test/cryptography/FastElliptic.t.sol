@@ -103,8 +103,6 @@ contract FastEllipticCurveTest is Test {
         bytes
             memory initBytecode = hex"608060405234801561001057600080fd5b5060405161477a38038061477a83398101604081905261002f91610037565b600055610050565b60006020828403121561004957600080fd5b5051919050565b61471b8061005f6000396000f3fe";
 
-        console.logBytes(bytecodeR);
-        console.log(bytecodeR.length);
         initBytecode = bytes.concat(initBytecode, bytecodeR);
         initBytecode = bytes.concat(initBytecode, precomputationBytecode);
         initBytecode = bytes.concat(
@@ -112,7 +110,6 @@ contract FastEllipticCurveTest is Test {
             abi.encode(precomputationsOffset)
         );
 
-        console.logBytes(initBytecode);
         address deployed;
         assembly {
             deployed := create(

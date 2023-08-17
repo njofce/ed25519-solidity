@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 struct ECDSASignature {
@@ -14,4 +15,10 @@ struct P256Signature {
 struct DevicePublicKey {
     uint256 x;
     uint256 y;
+}
+
+struct CallDataWithSignature {
+    bytes authenticatordata;
+    bytes clientData;
+    uint32 clientChallengeDataOffset;
 }

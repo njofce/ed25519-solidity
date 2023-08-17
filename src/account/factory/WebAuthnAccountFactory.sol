@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.13;
+
 /**
  * A UserOperations "initCode" holds the address of the factory, and a method call (to createAccount, in this sample factory).
  */

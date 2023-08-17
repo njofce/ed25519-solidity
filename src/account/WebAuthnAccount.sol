@@ -7,7 +7,7 @@ import "account-abstraction/interfaces/UserOperation.sol";
 import "account-abstraction/interfaces/IAccount.sol";
 import "account-abstraction/interfaces/IEntryPoint.sol";
 
-import "../cryptography/WrapECDSAPrecalculations.sol";
+import "./KeyPrecomputations.sol";
 import "../static/Structs.sol";
 import "../static/Base64URL.sol";
 
@@ -95,42 +95,23 @@ contract WebAuthnAccount is IAccount, Initializable {
             (P256Signature)
         );
 
-        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(
+        KeyPrecomputations precomputations = KeyPrecomputations(
             _precomputationsAddress
         );
 
         // messageHash is computed as sha256(authenticatorData || sha256(clientData))
         // both authenticatorData bytes and clientDataJSON bytes are provided in userop
 
-        // UserOp callData is encoded like this
-        // callData[0] = len(authenticatordata)
-        // callData[1:len(authenticatordata)] = authneticatorData
-        // callData[len(authenticatordata)] = len(clientData)
-        // callData[len(authenticatordata) + 1: len(authenticatordata) + len(clientData) + 1]
-        // callData[len(authenticatordata) + len(clientData) + 1] = clientChallengeDataOffset
-
-        uint authenticatorDataLength = uint(uint8(userOp.callData[0]));
-
-        bytes memory authenticatorData = userOp
-            .callData[1:authenticatorDataLength];
-
-        uint clientDataLength = uint(
-            uint8(userOp.callData[authenticatorDataLength])
-        );
-
-        bytes memory clientData = userOp.callData[authenticatorDataLength +
-            1:authenticatorDataLength + clientDataLength + 1];
-
-        uint clientChallengeDataOffset = uint(
-            uint8(
-                userOp.callData[authenticatorDataLength + clientDataLength + 1]
-            )
-        );
+        (
+            bytes memory authenticatorData,
+            bytes memory clientData,
+            uint32 clientChallengeDataOffset
+        ) = abi.decode(userOp.callData, (bytes, bytes, uint32));
 
         // 1. Validate challenge is same as the next nonce.
         _validateChallenge(clientData, clientChallengeDataOffset);
 
-        // 2. Build message hash from device auth data
+        // // 2. Build message hash from device auth data
         bytes memory verifyData = new bytes(authenticatorData.length + 32);
         _copyBytes(
             authenticatorData,
@@ -150,7 +131,8 @@ contract WebAuthnAccount is IAccount, Initializable {
 
         bytes32 messageHash = sha256(verifyData);
 
-        bool isValid = precomputed.isSignatureValid(
+        // 3. Verify signature
+        bool isValid = precomputations.isSignatureValid(
             messageHash,
             [signature.R, signature.S]
         );
@@ -164,15 +146,17 @@ contract WebAuthnAccount is IAccount, Initializable {
 
     function _validateChallenge(
         bytes memory clientData,
-        uint clientChallengeDataOffset
+        uint32 clientChallengeDataOffset
     ) internal view {
-        string memory challengeEncoded = Base64URL.encode32(
-            abi.encodePacked("123456") // Challenge must be some concatenation of address:nonce
+        // Encode the expected account challenge based on smart contract data
+        bytes memory challengeEncoded = abi.encodePacked(
+            Base64URL.encode32(
+                abi.encodePacked("123456") // TODO: Challenge must be some concatenation of address:nonce or just sc nonce
+            )
         );
 
-        bytes memory challengeExtracted = new bytes(
-            bytes(challengeEncoded).length
-        );
+        // Extract the challenge from the client data
+        bytes memory challengeExtracted = new bytes(challengeEncoded.length);
 
         _copyBytes(
             clientData,
@@ -181,8 +165,10 @@ contract WebAuthnAccount is IAccount, Initializable {
             challengeExtracted,
             0
         );
+
+        // Verify that challenge is the same
         if (
-            keccak256(abi.encodePacked(bytes(challengeEncoded))) !=
+            keccak256(challengeEncoded) !=
             keccak256(abi.encodePacked(challengeExtracted))
         ) {
             revert InvalidClientData();
