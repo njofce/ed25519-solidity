@@ -6,7 +6,7 @@ import "./static/Structs.sol";
 /**
  * @title   IMFAAccount.
  * @notice  The base interface for smart contract accounts that need to perform multi-factor authorization. The first authentication factor is not fixed, and can be EOA signature validation.
- * The second authentication factor is a WebAuthn device signature.
+ * The second authentication factor is a WebAuthn credential signature.
  */
 
 interface IMFAAccount {
@@ -17,37 +17,46 @@ interface IMFAAccount {
     function initialize(address _owner) external;
 
     /**
-     * @notice  Associate a new WebAuthn device with the account. Throws an error if another device is already associated with the account.
-     * @param   _deviceId  The id of the WebAuthn device that will be linked to the account.
-     * @param   _precomutations  The precomputed bytecode with an 8-dimensional table for Shamir's trick from device's public key.
-     * @param   _signature  The signature associated with the account. This is not a device signature, but the signature associated with the account.
+     * @notice  Associate a new WebAuthn credential with the account. Throws an error if another credential is already associated with the account.
+     * @param   _credentialId  The id of the WebAuthn credential that will be linked to the account.
+     * @param   _precomputationsInitCode  The precomputed bytecode with an 8-dimensional table for Shamir's trick from credential's public key.
      */
-    function addDevice(
-        uint32 _deviceId,
-        bytes memory _precomutations,
-        bytes memory _signature
+    function addCredential(
+        string memory _credentialId,
+        bytes memory _precomputationsInitCode
     ) external;
 
     /**
-     * @notice  Remove an existing WebAuthn device that is linked to the account.
-     * @param   _signature  A valid WebAuthn signature associated with the device that is being removed.
+     * @notice  Remove an existing WebAuthn credential that is linked to the account.
+     * @param   _assertionResponse  The message hash.
+     * @param   _signature  A valid WebAuthn signature associated with the credential that is being removed.
      */
-    function removeDevice(bytes memory _signature) external;
+    function removeCredential(
+        AuthenticatorAssertionResponse memory _assertionResponse,
+        P256Signature memory _signature
+    ) external;
 
     /**
-     * @notice  Get the id of the currently linked device with the account.
-     * @return  uint32  The id of the linked device.
+     * @notice  Get the id of the currently linked credential with the account.
+     * @return  string  The id of the linked credential.
      */
-    function getDevice() external view returns (uint32);
+    function getCredentailId() external view returns (string memory);
 
     /**
-     * @notice  Validate WebAuthn device signature. Throws an error if signature is invalid.
-     * @param   _hash  The message hash.
+     *
+     * @notice Returns the unique challenge that will be used for generating the webauthn assertion. It's usually the account nonce, but it can be anything else unique per transaction to avoid repatability attacks.
+     * @return bytes the bytes representation of the challenge
+     */
+    function getChallenge() external view returns (bytes memory);
+
+    /**
+     * @notice  Validate WebAuthn credential signature based on the data from the assertion. Throws an error if signature is invalid.
+     * @param   _assertionResponse  The message hash.
      * @param   _signature  The provided WebAuthn signature.
      * @return  bytes4  Returns the magic bytes if signature is invalid.
      */
-    function isValidDeviceSignature(
-        bytes32 _hash,
-        P256Signature calldata _signature
+    function isValidCredentialSignature(
+        AuthenticatorAssertionResponse memory _assertionResponse,
+        P256Signature memory _signature
     ) external returns (bytes4);
 }

@@ -17,8 +17,8 @@ struct DevicePublicKey {
     uint256 y;
 }
 
-struct CallDataWithSignature {
-    bytes authenticatordata;
+struct AuthenticatorAssertionResponse {
+    bytes authenticatorData;
     bytes clientData;
     uint32 clientChallengeDataOffset;
 }

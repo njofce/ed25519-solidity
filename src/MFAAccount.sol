@@ -4,6 +4,8 @@ pragma solidity ^0.8.13;
 import "./IMFAAccount.sol";
 import "./static/Structs.sol";
 import "./cryptography/WrapECDSAPrecalculations.sol";
+import "./signature/KeyPrecomputations.sol";
+import "./signature/SignatureValidation.sol";
 
 /**
  * @title   WebAuthnMFAAccount.
@@ -14,115 +16,103 @@ import "./cryptography/WrapECDSAPrecalculations.sol";
 // TODO: We need an example factory for deploying this contract alongside the AA account contract.
 // TODO: We need to provide UserOp callData examples that specify adding of a device, removing a device, and validating device signature
 
-contract WebAuthnMFAAccount is IMFAAccount {
+abstract contract WebAuthnMFAAccount is IMFAAccount {
     string public constant name = "WebAuthnMFAAccount";
 
-    // bytes4(keccak256("isValidDeviceSignature(bytes32,P256Signature)")
+    // bytes4(keccak256("isValidCredentialSignature(AuthenticatorAssertionResponse,P256Signature)")
     bytes4 internal constant MAGICVALUE = 0x1626ba7e; // TODO: Compute
 
-    /// A device is already connected to this account. You need to remove the existing device and link a new one.
-    /// @param deviceId the id of the currently linked device
-    error DeviceConnected(uint32 deviceId);
+    /// A credential is already connected to this account. You need to remove the existing credential and link a new one.
+    /// @param credentialId the id of the currently linked credentail
+    error CredentialAlreadyConnected(string credentialId);
 
     /// No device is connected to the current account.
-    error DeviceNotConnected();
+    error CredentialNotConnected();
+
+    /// The provided credential signature is invalid.
+    error InvalidCredentialSignature();
 
     /// A device WebAuthn signature is invalid
     /// @param deviceId the id of the provided device whose signature is invalid
-    error DeviceSignatureInvalid(uint32 deviceId);
+    error CredentialSignatureInvalid(uint32 deviceId);
 
-    uint32 constant NULL = 0;
+    string constant NULL = "";
 
-    address owner;
+    address _owner;
 
-    address precomputationsAddress;
-    uint256 precomputationsOffset;
-    uint32 deviceId;
+    address _precomputationsAddress;
+
+    string _credentialId;
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == _owner);
         _;
     }
 
-    function initialize(address _owner) external {
-        deviceId = NULL;
-        owner = _owner;
+    function initialize(address owner) external {
+        _credentialId = NULL;
+        _owner = owner;
     }
 
-    function addDevice(
-        uint32 _deviceId,
-        bytes memory _precomutations,
-        bytes memory _signature
+    function addCredential(
+        string memory credentialId,
+        bytes memory precomputationsInitCode
     ) external onlyOwner {
-        if (deviceId != NULL) {
-            revert DeviceConnected(deviceId);
+        if (keccak256(bytes(_credentialId)) != keccak256(bytes(NULL))) {
+            revert CredentialAlreadyConnected(_credentialId);
         }
 
-        bytes memory precalcContractBytecode = abi.encodePacked(
-            type(WrapECDSAPrecalculations).creationCode
-        );
+        bytes32 salt = keccak256(bytes(credentialId));
 
-        bytes memory precalcContractBytecodeRuntime = abi.encodePacked(
-            type(WrapECDSAPrecalculations).runtimeCode
-        );
-
-        uint256 _precomputationsOffset = precalcContractBytecodeRuntime.length;
-
-        precalcContractBytecode = bytes.concat(
-            precalcContractBytecode,
-            _precomutations
-        );
-
-        // TODO: Provide precomputations address as a function argument.
-        address _precomputationsAddress = address(64);
-
-        address deployed;
+        address precomputationsAddress;
         assembly {
-            deployed := create(
-                0,
-                add(precalcContractBytecode, 0x20),
-                mload(precalcContractBytecode)
+            precomputationsAddress := create2(
+                callvalue(),
+                add(precomputationsInitCode, 0x20),
+                mload(precomputationsInitCode),
+                salt
             )
         }
 
-        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(
-            _precomputationsAddress
-        );
-        precomputed.change_offset(_precomputationsOffset);
-
-        deviceId = _deviceId;
-        precomputationsAddress = _precomputationsAddress;
-        precomputationsOffset = _precomputationsOffset;
+        _credentialId = credentialId;
+        _precomputationsAddress = precomputationsAddress;
     }
 
-    function removeDevice(bytes memory _signature) external onlyOwner {
-        if (deviceId == NULL) {
-            revert DeviceNotConnected();
+    function removeCredential(
+        AuthenticatorAssertionResponse memory _assertionResponse,
+        P256Signature memory _signature
+    ) external onlyOwner {
+        if (keccak256(bytes(_credentialId)) == keccak256(bytes(NULL))) {
+            revert CredentialNotConnected();
         }
 
         // TODO: Validate device signature
+        if (
+            isValidCredentialSignature(_assertionResponse, _signature) !=
+            MAGICVALUE
+        ) {
+            revert InvalidCredentialSignature();
+        }
 
-        deviceId = NULL;
+        _credentialId = NULL;
     }
 
-    function getDevice() external view returns (uint32) {
-        return deviceId;
+    function getCredentailId() public view returns (string memory) {
+        return _credentialId;
     }
 
-    // TODO: this needs to be view ideally, check the smart contract for details.
-    function isValidDeviceSignature(
-        bytes32 hash,
-        P256Signature calldata signature
-    ) external returns (bytes4) {
-        WrapECDSAPrecalculations precomputed = WrapECDSAPrecalculations(
-            precomputationsAddress
-        );
+    function getChallenge() external view virtual returns (bytes memory);
 
-        bool isValid = precomputed.isSignatureValid(
-            hash,
-            [signature.R, signature.S]
+    function isValidCredentialSignature(
+        AuthenticatorAssertionResponse memory _assertionResponse,
+        P256Signature memory _signature
+    ) public returns (bytes4) {
+        bool isValid = SignatureValidation.isSignatureValid(
+            _signature,
+            _assertionResponse,
+            _precomputationsAddress,
+            abi.encodePacked("abc")
         );
-
         if (isValid) {
             return MAGICVALUE;
         } else {

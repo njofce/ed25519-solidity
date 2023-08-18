@@ -89,7 +89,7 @@ contract WebAuthnAccountTest is Test {
                 signature: signature
             }),
             "",
-            1
+            0
         );
 
         assertEq(res, 0);

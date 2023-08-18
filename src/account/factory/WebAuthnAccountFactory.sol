@@ -11,9 +11,8 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../WebAuthnAccount.sol";
 
 /**
- * A UserOperations "initCode" holds the address of the factory, and a method call (to createAccount, in this sample factory). `initCode` contains 20 bytes of factory address, followed by calldata.
  *
- * This factory needs to be deployed just once at the beginning, and then used for creation of SC Wallets.
+ * This factory needs to be deployed just once at the beginning, and then used for creation of WebAuthn Wallets.
  */
 contract WebAuthnAccountFactory {
     WebAuthnAccount public immutable accountImplementation;
@@ -24,17 +23,30 @@ contract WebAuthnAccountFactory {
 
     function createAccount(
         bytes memory devicePublicKey,
-        string memory credentialId, // Doese it make sense for salt = uint(hash(credentialId))?
-        address precomputationsAddress,
-        uint256 salt
+        string memory credentialId,
+        bytes memory precomputationsInitCode
     ) public returns (WebAuthnAccount ret) {
+        bytes32 salt = keccak256(bytes(credentialId));
+
+        address precomputationsAddress;
+        assembly {
+            precomputationsAddress := create2(
+                callvalue(),
+                add(precomputationsInitCode, 0x20),
+                mload(precomputationsInitCode),
+                salt
+            )
+        }
+
         address addr = getAddress(
             devicePublicKey,
             credentialId,
             precomputationsAddress,
             salt
         );
+
         uint codeSize = addr.code.length;
+
         if (codeSize > 0) {
             return WebAuthnAccount(payable(addr));
         }
@@ -46,7 +58,7 @@ contract WebAuthnAccountFactory {
 
         ret = WebAuthnAccount(
             payable(
-                new ERC1967Proxy{salt: bytes32(salt)}(
+                new ERC1967Proxy{salt: salt}(
                     address(accountImplementation),
                     abi.encodeCall(
                         WebAuthnAccount.initialize,
@@ -61,7 +73,7 @@ contract WebAuthnAccountFactory {
         bytes memory devicePublicKey,
         string memory credentialId,
         address precomputationsAddress,
-        uint256 salt
+        bytes32 salt
     ) public view returns (address) {
         DevicePublicKey memory pubKey = abi.decode(
             devicePublicKey,
@@ -69,7 +81,7 @@ contract WebAuthnAccountFactory {
         );
         return
             Create2.computeAddress(
-                bytes32(salt),
+                salt,
                 keccak256(
                     abi.encodePacked(
                         type(ERC1967Proxy).creationCode,

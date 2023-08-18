@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../../src/account/KeyPrecomputations.sol";
+import "../../src/signature/KeyPrecomputations.sol";
 import "../../src/cryptography/FastElliptic.sol";
 import "../../src/precompiled/fcl_ecdsa_precbytecode.sol";
 

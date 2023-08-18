@@ -7,7 +7,8 @@ import "account-abstraction/interfaces/UserOperation.sol";
 import "account-abstraction/interfaces/IAccount.sol";
 import "account-abstraction/interfaces/IEntryPoint.sol";
 
-import "./KeyPrecomputations.sol";
+import "../signature/KeyPrecomputations.sol";
+import "../signature/SignatureValidation.sol";
 import "../static/Structs.sol";
 import "../static/Base64URL.sol";
 
@@ -19,6 +20,8 @@ contract WebAuthnAccount is IAccount, Initializable {
     DevicePublicKey _publicKey;
 
     string _credentialId;
+
+    uint192 _nonceKeyId;
 
     address _precomputationsAddress;
 
@@ -41,7 +44,11 @@ contract WebAuthnAccount is IAccount, Initializable {
      * For a nonce of a specific key, use `entrypoint.getNonce(account, key)`
      */
     function getNonce() public view virtual returns (uint256) {
-        return entryPoint().getNonce(address(this), 0);
+        return entryPoint().getNonce(address(this), _nonceKeyId);
+    }
+
+    function getCredentialId() public view returns (string memory) {
+        return _credentialId;
     }
 
     constructor(IEntryPoint entryPoint) {
@@ -67,12 +74,11 @@ contract WebAuthnAccount is IAccount, Initializable {
         _publicKey = devicePublicKey;
         _credentialId = credentialId;
 
+        bytes32 credentialHash = keccak256(bytes(_credentialId));
+        _nonceKeyId = uint192(uint256(credentialHash) >> 64); // Take the first 192 bits of the hash
+
         _precomputationsAddress = precomputationsAddress;
         emit WebAuthnAccountInitialized(_entryPoint, _precomputationsAddress);
-    }
-
-    function getCredentialId() public view returns (string memory) {
-        return _credentialId;
     }
 
     function validateUserOp(
@@ -87,58 +93,35 @@ contract WebAuthnAccount is IAccount, Initializable {
         returns (uint256 validationData)
     {
         validationData = _validateSignature(userOp, userOpHash);
-        // _payPrefund(missingAccountFunds); // TODO: Enable this
+        _payPrefund(missingAccountFunds);
     }
 
     function _validateSignature(
         UserOperation calldata userOp,
         bytes32 _userOpHash
     ) internal virtual returns (uint256 validationData) {
-        P256Signature memory signature = abi.decode(
-            userOp.signature,
-            (P256Signature)
-        );
-
-        KeyPrecomputations precomputations = KeyPrecomputations(
-            _precomputationsAddress
-        );
-
-        // messageHash is computed as sha256(authenticatorData || sha256(clientData))
-        // both authenticatorData bytes and clientDataJSON bytes are provided in userop
-
         (
             bytes memory authenticatorData,
             bytes memory clientData,
             uint32 clientChallengeDataOffset
         ) = abi.decode(userOp.callData, (bytes, bytes, uint32));
 
-        // 1. Validate challenge is same as the next nonce.
-        _validateChallenge(clientData, clientChallengeDataOffset);
+        AuthenticatorAssertionResponse
+            memory assertion = AuthenticatorAssertionResponse(
+                authenticatorData,
+                clientData,
+                clientChallengeDataOffset
+            );
 
-        // // 2. Build message hash from device auth data
-        bytes memory verifyData = new bytes(authenticatorData.length + 32);
-        _copyBytes(
-            authenticatorData,
-            0,
-            authenticatorData.length,
-            verifyData,
-            0
+        P256Signature memory signature = abi.decode(
+            userOp.signature,
+            (P256Signature)
         );
-
-        _copyBytes(
-            abi.encodePacked(sha256(clientData)),
-            0,
-            32,
-            verifyData,
-            authenticatorData.length
-        );
-
-        bytes32 messageHash = sha256(verifyData);
-
-        // 3. Verify signature
-        bool isValid = precomputations.isSignatureValid(
-            messageHash,
-            [signature.R, signature.S]
+        bool isValid = SignatureValidation.isSignatureValid(
+            signature,
+            assertion,
+            _precomputationsAddress,
+            abi.encodePacked("nonce2")
         );
 
         if (!isValid) {
@@ -146,37 +129,6 @@ contract WebAuthnAccount is IAccount, Initializable {
         }
 
         return 0;
-    }
-
-    function _validateChallenge(
-        bytes memory clientData,
-        uint32 clientChallengeDataOffset
-    ) internal view {
-        // Encode the expected account challenge based on smart contract data
-        bytes memory challengeEncoded = abi.encodePacked(
-            Base64URL.encode32(
-                abi.encodePacked("nonce2") // TODO: Challenge must be some concatenation of address:nonce or just sc nonce
-            )
-        );
-
-        // Extract the challenge from the client data
-        bytes memory challengeExtracted = new bytes(challengeEncoded.length);
-
-        _copyBytes(
-            clientData,
-            clientChallengeDataOffset,
-            challengeExtracted.length,
-            challengeExtracted,
-            0
-        );
-
-        // Verify that challenge is the same
-        if (
-            keccak256(challengeEncoded) !=
-            keccak256(abi.encodePacked(challengeExtracted))
-        ) {
-            revert InvalidClientData();
-        }
     }
 
     function _payPrefund(uint256 missingAccountFunds) internal virtual {
@@ -188,30 +140,5 @@ contract WebAuthnAccount is IAccount, Initializable {
             (success);
             //ignore failure (its EntryPoint's job to verify, not account.)
         }
-    }
-
-    /*
-    The following function has been written by Alex Beregszaszi (@axic), use it under the terms of the MIT license
-    */
-    function _copyBytes(
-        bytes memory _from,
-        uint _fromOffset,
-        uint _length,
-        bytes memory _to,
-        uint _toOffset
-    ) internal pure returns (bytes memory _copiedBytes) {
-        uint minLength = _length + _toOffset;
-        require(_to.length >= minLength); // Buffer too small. Should be a better way?
-        uint i = 32 + _fromOffset; // NOTE: the offset 32 is added to skip the `size` field of both bytes variables
-        uint j = 32 + _toOffset;
-        while (i < (32 + _fromOffset + _length)) {
-            assembly {
-                let tmp := mload(add(_from, i))
-                mstore(add(_to, j), tmp)
-            }
-            i += 32;
-            j += 32;
-        }
-        return _to;
     }
 }
