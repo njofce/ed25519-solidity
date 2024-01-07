@@ -1,0 +1,47 @@
+{
+    "name": "@tokensight/webauthn-sdk",
+    "version": "1.0.0",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "types": "./dist/index.d.ts",
+    "license": "Apache-2.0",
+    "description": "WebAuthn SDK for ERC 4337 Wallets",
+    "author": {
+      "name": "TokenSight",
+      "url": "https://tokensight.io/"
+    },
+    "homepage": "https://github.com/njofce/webauthn-mfa-wallet",
+    "bugs": {
+      "url": "https://github.com/njofce/webauthn-mfa-wallet/issues"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/njofce/webauthn-mfa-wallet.git",
+      "directory": "packages/webauthn-account"
+    },
+    "files": [
+      "dist/",
+      "CHANGELOG.md"
+    ],
+    "publishConfig": {
+      "access": "public"
+    },
+    "scripts": {
+      "prepublishOnly": "pnpm -w run clean-all && pnpm -w run build-all",
+      "build": "rollup -c",
+      "clean": "rimraf ./dist ./.cache",
+      "test": "jest"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    },
+    "dependencies": {}
+  }
