@@ -30,7 +30,7 @@ contract WebAuthnAccount is IAccount, Initializable {
     error InvalidClientData();
 
     event WebAuthnAccountInitialized(
-        IEntryPoint indexed entryPoint,
+        address indexed accountAddress,
         address indexed precomputationsAddress
     );
 
@@ -49,6 +49,10 @@ contract WebAuthnAccount is IAccount, Initializable {
 
     function getCredentialId() public view returns (string memory) {
         return _credentialId;
+    }
+
+    function getPrecomputationsAddress() public view returns (address) {
+        return _precomputationsAddress;
     }
 
     constructor(IEntryPoint entryPoint) {
@@ -78,7 +82,7 @@ contract WebAuthnAccount is IAccount, Initializable {
         _nonceKeyId = uint192(uint256(credentialHash) >> 64); // Take the first 192 bits of the hash
 
         _precomputationsAddress = precomputationsAddress;
-        emit WebAuthnAccountInitialized(_entryPoint, _precomputationsAddress);
+        emit WebAuthnAccountInitialized(address(this), _precomputationsAddress);
     }
 
     function validateUserOp(
@@ -121,7 +125,7 @@ contract WebAuthnAccount is IAccount, Initializable {
             signature,
             assertion,
             _precomputationsAddress,
-            abi.encodePacked("nonce2")
+            abi.encodePacked(getNonce())
         );
 
         if (!isValid) {

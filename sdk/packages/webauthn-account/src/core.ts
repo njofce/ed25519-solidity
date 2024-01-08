@@ -1,22 +1,15 @@
 import cbor from 'cbor';
 import elliptic from "elliptic";
 
+import type { PublicKeyCredentialWithAttestationJSON } from "./webauthn-json";
 import { COSEKEYS, CredentialRequestConfig, ExternalAuthenticatorTransports, InternalAuthenticatorTransports, PublicKey, Signature, WebAuthnAttestation, WebAuthnSignaturePayload } from "./types";
 import { concat, hasWebAuthnSupport, shouldRemoveLeadingZero, toBuffer, toHash } from "./utils";
-import type { PublicKeyCredentialWithAttestationJSON } from "./webauthn-json";
-import {
-  get as webauthnCredentialGet,
-  create as webauthnCredentialCreate,
-} from "./webauthn-json";
-
+import { get as webauthnCredentialGet, create as webauthnCredentialCreate } from "./webauthn-json";
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 
 const EC = elliptic.ec;
 const ec = new EC("p256");
-
-export const DEFAULT_TIMEOUT = 1 * 60 * 1000; // one minute timeout
-export const DEFAULT_USER_VERIFICATION = "preferred";
 
 export async function getWebAuthnAttestation(
     options: CredentialCreationOptions
@@ -56,8 +49,8 @@ export async function getPublicKey(attestationObject: string): Promise<PublicKey
 
     // x and y coordinates
     const publicKey = [
-      "0x" + pk.getPublic("hex").slice(2, 66),
-      "0x" + pk.getPublic("hex").slice(-64),
+      '0x' + pk.getPublic("hex").slice(2, 66),
+      '0x' + pk.getPublic("hex").slice(-64),
     ];
     
     return {

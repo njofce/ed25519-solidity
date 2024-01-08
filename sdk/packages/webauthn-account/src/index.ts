@@ -4,13 +4,16 @@ export {
     WebAuthnAttestation, 
     WebAuthnSignaturePayload, 
     PublicKey,
-    Signature } from './types';
+    Signature,
+    PrecomputationBytecodeData
+} from './types';
 
 export { 
     hasWebAuthnSupport, 
     generateRandomBuffer, 
     base64UrlEncode, 
-    toBuffer 
+    toBuffer,
+    bytesToHex
 } from './utils';
 
 export { 

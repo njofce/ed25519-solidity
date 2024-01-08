@@ -63,6 +63,10 @@ export type WebAuthnAttestation = {
      transports: InternalAuthenticatorTransports [];
 }
 
+export type PrecomputationBytecodeData = {
+    bytecode: string;
+}
+
 export enum COSEKEYS {
     kty = 1,
     alg = 3,

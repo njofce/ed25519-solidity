@@ -63,7 +63,7 @@ library SignatureValidation {
         bytes memory clientData,
         bytes memory challenge,
         uint32 clientChallengeDataOffset
-    ) internal view {
+    ) internal pure {
         // Encode the expected account challenge based on smart contract data
         bytes memory challengeEncoded = abi.encodePacked(
             Base64URL.encode32(challenge)

@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use env_logger::Env;
@@ -122,7 +123,12 @@ async fn main() -> std::io::Result<()> {
     let host = std::env::var("HOST").unwrap();
     let port = std::env::var("PORT").unwrap().parse().unwrap();
 
-    HttpServer::new(|| App::new().service(precompute))
+    
+
+    HttpServer::new(||{
+        let cors = Cors::permissive();
+        App::new().wrap(cors).service(precompute)
+    })
         .bind((host, port))?
         .run()
         .await

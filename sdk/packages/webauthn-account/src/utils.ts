@@ -25,6 +25,10 @@ export function toHexString(byteArray: Uint8Array) {
     '');
 }
 
+export function bytesToHex (bytes: Uint8Array): string {
+  return bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");
+}
+
 export function toBuffer(
   base64urlString: string,
   from: "base64" | "base64url" = "base64url"

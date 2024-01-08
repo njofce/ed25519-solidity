@@ -1,0 +1,52 @@
+{
+  "name": "@tokensight/deployer",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "license": "Apache-2.0",
+  "description": "Deployer for ERC 4337 WebAuthn contracts",
+  "author": {
+    "name": "TokenSight",
+    "url": "https://tokensight.io/"
+  },
+  "homepage": "https://github.com/njofce/webauthn-mfa-wallet",
+  "bugs": {
+    "url": "https://github.com/njofce/webauthn-mfa-wallet/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/njofce/webauthn-mfa-wallet.git",
+    "directory": "packages/webauthn-account"
+  },
+  "files": [
+    "dist/",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "deploy-factory": "tsx ./src/deploy-webauthn-factory.ts",
+    "test": "jest"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "viem": "^2.0.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsx": "^3.12.7"
+  }
+}

@@ -1,6 +1,7 @@
 {
     "references": [
-      { "path": "./packages/webauthn-account" }
+      { "path": "./packages/webauthn-account" },
+      { "path": "./packages/deployer" }
     ],
     "files": []
   }

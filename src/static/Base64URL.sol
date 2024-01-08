@@ -87,14 +87,17 @@ library Base64URL {
 
             // When data `bytes` is not exactly 3 bytes long
             // it is padded with `=` characters at the end
-            switch mod(mload(data), 3)
-            case 1 {
-                mstore8(sub(resultPtr, 1), 0x3d)
-                mstore8(sub(resultPtr, 2), 0x3d)
-            }
-            case 2 {
-                mstore8(sub(resultPtr, 1), 0x3d)
-            }
+            
+            // NOTE: PADDING IS NOT ADDED SINCE CHALLENGE IS NOT PADDED IN WEBAUTHN CLIENT DATA
+
+            // switch mod(mload(data), 3)
+            // case 1 {
+            //     mstore8(sub(resultPtr, 1), 0x3d)
+            //     mstore8(sub(resultPtr, 2), 0x3d)
+            // }
+            // case 2 {
+            //     mstore8(sub(resultPtr, 1), 0x3d)
+            // }
         }
 
         return result;
