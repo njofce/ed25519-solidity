@@ -28,15 +28,7 @@ contract WebAuthnAccountFactory {
     ) public returns (WebAuthnAccount ret) {
         bytes32 salt = keccak256(bytes(credentialId));
 
-        address precomputationsAddress;
-        assembly {
-            precomputationsAddress := create2(
-                callvalue(),
-                add(precomputationsInitCode, 0x20),
-                mload(precomputationsInitCode),
-                salt
-            )
-        }
+        address precomputationsAddress = Create2.deploy(0, salt, precomputationsInitCode);
 
         address addr = getAddress(
             devicePublicKey,
@@ -67,6 +59,11 @@ contract WebAuthnAccountFactory {
                 )
             )
         );
+    }
+
+    function getPrecomputationsAddress(string memory credentialId, bytes memory precomputationsInitCode) public view returns (address) {
+        bytes32 salt = keccak256(bytes(credentialId));
+        return Create2.computeAddress(salt, keccak256(abi.encodePacked(precomputationsInitCode)));
     }
 
     function getAddress(

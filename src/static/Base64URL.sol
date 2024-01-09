@@ -34,7 +34,7 @@ library Base64URL {
         // - `data.length + 2`  -> Round up
         // - `/ 3`              -> Number of 3-bytes chunks
         // - `4 *`              -> 4 characters for each chunk
-        string memory result = new string(4 * ((data.length + 2) / 3));
+        string memory result = new string(4 * ((data.length + 2) / 3) - 1);
 
         /// @solidity memory-safe-assembly
         assembly {
@@ -85,19 +85,20 @@ library Base64URL {
                 resultPtr := add(resultPtr, 1) // Advance
             }
 
+            // DO NOT PAD THE DATA SINCE WEBAUTHN CLIENT DATA IS NOT PADDED
+
             // When data `bytes` is not exactly 3 bytes long
             // it is padded with `=` characters at the end
-            
-            // NOTE: PADDING IS NOT ADDED SINCE CHALLENGE IS NOT PADDED IN WEBAUTHN CLIENT DATA
 
             // switch mod(mload(data), 3)
             // case 1 {
-            //     mstore8(sub(resultPtr, 1), 0x3d)
-            //     mstore8(sub(resultPtr, 2), 0x3d)
+                // mstore8(sub(resultPtr, 1), 0x3d)
+                // mstore8(sub(resultPtr, 2), 0x3d)
             // }
             // case 2 {
-            //     mstore8(sub(resultPtr, 1), 0x3d)
+                // mstore8(sub(resultPtr, 1), 0x3d)
             // }
+
         }
 
         return result;

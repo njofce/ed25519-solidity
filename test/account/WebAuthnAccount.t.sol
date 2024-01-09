@@ -3,8 +3,11 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 import "../../src/account/WebAuthnAccount.sol";
 import "../../src/static/Structs.sol";
+import "../../src/static/Base64URL.sol";
 
 contract WebAuthnAccountTest is Test {
     IEntryPoint public entryPoint;
@@ -60,51 +63,46 @@ contract WebAuthnAccountTest is Test {
             )
         );
 
-        bytes32 credentialHash = keccak256(bytes("20-RUhJT8AJ4hFdJZX2q63rtaL6xWUk93-NHeko7xIU"));
-        uint192 nonceKeyId = uint192(uint256(credentialHash) >> 64); // Take the first 192 bits of the hash
-
         vm.mockCall(
             address(entryPoint),
             abi.encodeWithSelector(INonceManager.getNonce.selector),
-            abi.encode("35529862795762677615465009376706450436748977128355174688306387864239197913088")
+            abi.encode(35529862795762677615465009376706450436748977128355174688306387864239197913088) 
         );
 
-        string memory encoded = Base64URL.encode32("35529862795762677615465009376706450436748977128355174688306387864239197913088");
-        console.log(encoded);
-
         // Authenticator data and client data JSON (in hex representation) retrieved from the webauthn signature
-        // bytes
-        //     memory authenticatorDataBase64DecodedHex = hex"49960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d97630500000000";
-        // bytes
-        //     memory clientDataBase64DecodedHex = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a224d7a55314d6a6b344e6a49334f5455334e6a49324e7a63324d5455304e6a55774d446b7a4e7a59334d4459304e5441304d7a59334e4467354e7a63784d6a677a4e5455784e7a51324f44677a4d44597a4f4463344e6a51794d7a6b784f5463354d544d774f4467222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a66616c73657d";
+        bytes
+            memory authenticatorDataBase64DecodedHex = hex"49960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d97630500000000";
+        bytes
+            memory clientDataBase64DecodedHex = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a224d7a55314d6a6b344e6a49334f5455334e6a49324e7a63324d5455304e6a55774d446b7a4e7a59334d4459304e5441304d7a59334e4467354e7a63784d6a677a4e5455784e7a51324f44677a4d44597a4f4463344e6a51794d7a6b784f5463354d544d774f4467222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a66616c73657d";
 
-        // uint32 offset = 36; // (72 / 2)
+        uint32 clientDataChallengeOffset = 36; // (72 / 2)
 
-        // bytes memory callData = abi.encode(
-        //     authenticatorDataBase64DecodedHex,
-        //     clientDataBase64DecodedHex,
-        //     offset
-        // );
 
-        // vm.startPrank(address(0));
+        bytes memory callData = abi.encode(
+            authenticatorDataBase64DecodedHex,
+            clientDataBase64DecodedHex,
+            clientDataChallengeOffset
+        );
 
-        // uint256 res = proxy.validateUserOp(
-        //     UserOperation({
-        //         sender: address(1),
-        //         initCode: "",
-        //         nonce: 1,
-        //         callData: callData,
-        //         callGasLimit: 1,
-        //         verificationGasLimit: 1,
-        //         preVerificationGas: 1,
-        //         maxFeePerGas: 1,
-        //         maxPriorityFeePerGas: 1,
-        //         paymasterAndData: "",
-        //         signature: signature
-        //     }),
-        //     "",
-        //     0
-        // );
-        // assertEq(res, 0);
+        vm.startPrank(address(0));
+
+        uint256 res = proxy.validateUserOp(
+            UserOperation({
+                sender: address(1),
+                initCode: "",
+                nonce: 1,
+                callData: callData,
+                callGasLimit: 1,
+                verificationGasLimit: 1,
+                preVerificationGas: 1,
+                maxFeePerGas: 1,
+                maxPriorityFeePerGas: 1,
+                paymasterAndData: "",
+                signature: signature
+            }),
+            "",
+            0
+        );
+        assertEq(res, 0);
     }
 }

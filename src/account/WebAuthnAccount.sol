@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "account-abstraction/interfaces/UserOperation.sol";
 import "account-abstraction/interfaces/IAccount.sol";
 import "account-abstraction/interfaces/IEntryPoint.sol";
@@ -125,7 +126,7 @@ contract WebAuthnAccount is IAccount, Initializable {
             signature,
             assertion,
             _precomputationsAddress,
-            abi.encodePacked(getNonce())
+            abi.encodePacked(Strings.toString(getNonce()))
         );
 
         if (!isValid) {

@@ -81,10 +81,7 @@ library SignatureValidation {
         );
 
         // Verify that challenge is the same
-        if (
-            keccak256(challengeEncoded) !=
-            keccak256(abi.encodePacked(challengeExtracted))
-        ) {
+        if (keccak256(challengeEncoded) != keccak256(challengeExtracted)) {
             revert InvalidClientData();
         }
     }

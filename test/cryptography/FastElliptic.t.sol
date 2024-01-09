@@ -163,7 +163,6 @@ contract FastEllipticCurveTest is Test {
         estimated_size = bytecodeR.length;
         bytecodeR = bytes.concat(bytecodeR, prec);
 
-        // console.logBytes(bytecodeR);
         console.log("size contract=", estimated_size);
         console.log("size contract+prec=", bytecodeR.length);
         checkpointGasLeft = gasleft();

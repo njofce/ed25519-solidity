@@ -13,18 +13,24 @@ import {
   bytesToHex
 } from '@tokensight/webauthn-sdk';
 
+
 import WEB_AUTHN_ACCOUNT_FACTORY_DATA from './abis/WebAuthnAccountFactory.json';
 import WEB_AUTHN_ACCOUNT_DATA from './abis/WebAuthnAccount.json';
 
-import { createPublicClient, createWalletClient, custom, encodeAbiParameters, parseAbi, toHex } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { polygonMumbai, sepolia } from 'viem/chains'
-import { http } from 'viem'
-import { getContract } from 'viem'
-import { keccak256 } from 'viem'
-import { decodeEventLog } from 'viem'
+import { createPublicClient, createWalletClient, encodeAbiParameters, encodePacked, keccak256, parseAbi } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { polygonMumbai } from 'viem/chains';
+import { http } from 'viem';
+import { getContract } from 'viem';
+import { decodeEventLog } from 'viem';
+import { useState } from 'react';
 
-export const account = privateKeyToAccount(process.env.NEXT_PUBLIC_ACCOUNT_PK as `0x${string}`)
+const pk = process.env.NEXT_PUBLIC_ACCOUNT_PK as `0x${string}`;
+const account = privateKeyToAccount(pk)
+
+/**
+ * This example is running on Polygon Mumbai. It uses the Mumbai entrypoint for the smart contract accounts - 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789.
+ */
 
 export const walletClient = createWalletClient({
   chain: polygonMumbai,
@@ -37,8 +43,10 @@ export const publicClient = createPublicClient({
   transport: http(process.env.NEXT_PUBLIC_RPC_URL) 
 })
 
+
 export default function Home() {
 
+  const [deployedWallet, setDeployedWallet] = useState('0x0' as `0x${string}`)
   
   const createWallet = async() => {
     const challenge = generateRandomBuffer(); // random init challenge
@@ -59,12 +67,11 @@ export default function Home() {
         pubKeyCredParams: [{alg: -7, type: "public-key"}, {alg: -8, type: "public-key"}, {alg: -257, type: "public-key"}],
         user: {
           id: authenticatorUserId,
-          name: "Wallet 5",
-          displayName: "Wallet 5",
+          name: "Wallet 7",
+          displayName: "Wallet 7",
         },
       },
     })
-    
    
     const credentialId: string = attestation.credentialId;
 
@@ -131,29 +138,33 @@ export default function Home() {
     const precomputationsAddress = decoded.args[1];
     
     console.log(`Deployed WebAuthn account to ${contractAddress}`);
-
-
-    // WebAuthnAccount('')
+    console.log(`Deployed WebAuthn precomputations to ${precomputationsAddress}`);
+    setDeployedWallet(contractAddress);
   }
 
-  const sign = async() => {
+  const sendTransaction = async() => {
+    const dw = "0x0F3796A1c708505A0E7CA59B8178f6cE1E743216";
     const contract = getContract({
-      address: '0x8809242Ebdf3B408B9A56dA6D0089c441C25F079',
+      address: dw,
       abi: WEB_AUTHN_ACCOUNT_DATA.abi,
       client: { public: publicClient, wallet: walletClient }
     })
 
+    // The account nonce should be used as the challenge, as it's always unique and can be used to verify signature on-chain.
     const nonce = await contract.read.getNonce();
+
+    console.log(nonce);
     const nonceStr = (nonce as BigInt).toString();
     
-    console.log(nonceStr);
+    console.log("nonce:", (nonce as BigInt).toString(16));
 
     const credentialID = await contract.read.getCredentialId();
-    console.log(credentialID);
+    console.log("credentialID", credentialID);
 
    const assertion = await getWebAuthnAssertion(nonceStr);
    console.log(assertion);
 
+  // TODO: Move this logic to sdk
    const authData = assertion.authenticatorData;
    const clientDataJson = assertion.clientDataJson;
 
@@ -163,13 +174,94 @@ export default function Home() {
   const authDataHex = bytesToHex(authDataBuffer);
   const clientDataHex = bytesToHex(clientDataBuffer);
 
-  console.log(authDataHex);
-  console.log(clientDataHex);
+  const clientDataChallengeOffset = 36;
+  
+  const encodedCallData = encodePacked(
+    ['bytes', 'bytes', 'uint32'], 
+    [`0x${authDataHex}`, `0x${clientDataHex}`, clientDataChallengeOffset]);
 
-  const signature = await parseSignature(assertion.signature);
-  console.log(signature);
+  console.log(encodedCallData)
 
-   // TODO: Send a transaction
+    const signature = await parseSignature(assertion.signature);
+
+    const encodedSignature = encodePacked(
+      ['bytes', 'bytes'], 
+      [
+        `${signature.r}` as any,
+        `${signature.s}` as any
+      ]
+    )
+
+    /**
+     * struct UserOperation {
+
+        address sender;
+        uint256 nonce;
+        bytes initCode;
+        bytes callData;
+        uint256 callGasLimit;
+        uint256 verificationGasLimit;
+        uint256 preVerificationGas;
+        uint256 maxFeePerGas;
+        uint256 maxPriorityFeePerGas;
+        bytes paymasterAndData;
+        bytes signature;
+    }
+     */
+
+    console.log(dw);
+    const encodedUserOp = encodePacked(
+      ['address', 'uint256', 'bytes', 'bytes', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'bytes', 'bytes'], 
+      [
+        dw,
+        nonce as any,
+        '0x1',
+        encodedCallData,
+        BigInt(1),
+        BigInt(1),
+        BigInt(1),
+        BigInt(1),
+        BigInt(1),
+        '0x1',
+        encodedSignature
+      ]
+    )
+  
+    console.log(encodedUserOp);
+
+    const res = await contract.write.validateUserOp([encodedUserOp, keccak256(encodedUserOp), '0x0']);
+    console.log(res);
+
+    // const options = {
+    //   method: 'POST',
+    //   headers: {accept: 'application/json', 'content-type': 'application/json'},
+    //   body: JSON.stringify({
+    //     id: 1,
+    //     jsonrpc: '2.0',
+    //     method: 'eth_sendUserOperation',
+    //     params: [
+    //       {
+    //         sender: dw,
+    //         nonce: `0x${(nonce as BigInt).toString(16)}`,
+    //         initCode: '0x',
+    //         callData: encodedCallData,
+    //         callGasLimit: '0x7A1200',
+    //         verificationGasLimit: '0x927C0',
+    //         preVerificationGas: '0x15F90',
+    //         maxFeePerGas: '0x656703D00',
+    //         maxPriorityFeePerGas: '0x13AB6680',
+    //         signature: encodedSignature,
+    //         paymasterAndData: '0x'
+    //       },
+    //       '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789'
+    //     ]
+    //   })
+    // };
+    
+    // fetch(process.env.NEXT_PUBLIC_RPC_URL as string, options)
+    //   .then(response => response.json())
+    //   .then(response => console.log(response))
+    //   .catch(err => console.error(err));
   }
 
   return (
@@ -179,15 +271,11 @@ export default function Home() {
           Get started by creating a WebAuthn wallet.
         </p>
 
-        <div
-          onClick={() => createWallet()}
-        >
+        <div onClick={() => createWallet()}>
           Create
         </div>
 
-        <div
-          onClick={() => sign()}
-        >
+        <div onClick={() => sendTransaction()}>
           Sign Transaction
         </div>
       </div>
