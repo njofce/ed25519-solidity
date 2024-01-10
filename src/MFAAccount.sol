@@ -20,7 +20,7 @@ abstract contract WebAuthnMFAAccount is IMFAAccount {
     string public constant name = "WebAuthnMFAAccount";
 
     // bytes4(keccak256("isValidCredentialSignature(AuthenticatorAssertionResponse,P256Signature)")
-    bytes4 internal constant MAGICVALUE = 0x1626ba7e; // TODO: Compute
+    bytes4 internal constant MAGICVALUE = 0xae16b27e; 
 
     /// A credential is already connected to this account. You need to remove the existing credential and link a new one.
     /// @param credentialId the id of the currently linked credentail
@@ -101,7 +101,7 @@ abstract contract WebAuthnMFAAccount is IMFAAccount {
         return _credentialId;
     }
 
-    function getChallenge() external view virtual returns (bytes memory);
+    function getChallenge() external view virtual returns (string memory);
 
     function isValidCredentialSignature(
         AuthenticatorAssertionResponse memory _assertionResponse,
@@ -111,7 +111,7 @@ abstract contract WebAuthnMFAAccount is IMFAAccount {
             _signature,
             _assertionResponse,
             _precomputationsAddress,
-            abi.encodePacked("abc")
+            abi.encodePacked(getChallenge())
         );
         if (isValid) {
             return MAGICVALUE;
