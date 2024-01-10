@@ -2,8 +2,8 @@ import cbor from 'cbor';
 import elliptic from "elliptic";
 
 import type { PublicKeyCredentialWithAttestationJSON } from "./webauthn-json";
-import { COSEKEYS, CredentialRequestConfig, ExternalAuthenticatorTransports, InternalAuthenticatorTransports, PublicKey, Signature, WebAuthnAttestation, WebAuthnSignaturePayload } from "./types";
-import { concat, hasWebAuthnSupport, shouldRemoveLeadingZero, toBuffer, toHash } from "./utils";
+import { COSEKEYS, CredentialRequestConfig, ExternalAuthenticatorTransports, InternalAuthenticatorTransports, PublicKey, Signature, WebAuthnAttestation, WebAuthnAuthSignatureData, WebAuthnSignaturePayload } from "./types";
+import { bytesToHex, concat, hasWebAuthnSupport, shouldRemoveLeadingZero, toBuffer, toHash } from "./utils";
 import { get as webauthnCredentialGet, create as webauthnCredentialCreate } from "./webauthn-json";
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
@@ -78,6 +78,26 @@ export async function getWebAuthnAssertion(challenge: string, options?: Credenti
   
     return signaturePayload;
 }
+
+export async function getAssertionHexData(assertion: WebAuthnSignaturePayload): Promise<WebAuthnAuthSignatureData> {
+
+  const authData = assertion.authenticatorData;
+  const clientDataJson = assertion.clientDataJson;
+
+  const authDataBuffer: Uint8Array = toBuffer(authData);
+  const clientDataBuffer: Uint8Array = toBuffer(clientDataJson);
+
+  const authDataHex = bytesToHex(authDataBuffer);
+  const clientDataHex = bytesToHex(clientDataBuffer);
+
+  const clientDataChallengeOffset = 36;
+
+  return {
+    authDataHex,
+    clientDataHex,
+    clientDataChallengeOffset
+  }
+} 
 
 export async function parseSignature(signature: string): Promise<Signature> {
     const parsedSignature = AsnParser.parse(

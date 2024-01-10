@@ -5,7 +5,8 @@ export {
     WebAuthnSignaturePayload, 
     PublicKey,
     Signature,
-    PrecomputationBytecodeData
+    PrecomputationBytecodeData,
+    WebAuthnAuthSignatureData
 } from './types';
 
 export { 
@@ -21,5 +22,6 @@ export {
     getWebAuthnAssertion, 
     getPublicKey, 
     parseSignature, 
-    getMessageHash 
+    getMessageHash,
+    getAssertionHexData
 } from './core';

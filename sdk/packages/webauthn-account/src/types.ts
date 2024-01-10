@@ -67,6 +67,12 @@ export type PrecomputationBytecodeData = {
     bytecode: string;
 }
 
+export type WebAuthnAuthSignatureData = {
+    authDataHex: string;
+    clientDataHex: string;
+    clientDataChallengeOffset: number;
+}
+
 export enum COSEKEYS {
     kty = 1,
     alg = 3,

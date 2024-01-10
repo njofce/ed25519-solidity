@@ -5,25 +5,24 @@ import styles from './page.module.css'
 import {
   getWebAuthnAttestation, 
   getWebAuthnAssertion, 
+  getAssertionHexData,
   getPublicKey, 
   generateRandomBuffer,
   parseSignature,
   PrecomputationBytecodeData,
-  toBuffer,
-  bytesToHex
 } from '@tokensight/webauthn-sdk';
-
 
 import WEB_AUTHN_ACCOUNT_FACTORY_DATA from './abis/WebAuthnAccountFactory.json';
 import WEB_AUTHN_ACCOUNT_DATA from './abis/WebAuthnAccount.json';
 
-import { createPublicClient, createWalletClient, encodeAbiParameters, encodePacked, keccak256, parseAbi } from 'viem';
+import { createPublicClient, createWalletClient, encodeAbiParameters, encodePacked, keccak256, parseAbi, parseAbiParameters } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygonMumbai } from 'viem/chains';
 import { http } from 'viem';
 import { getContract } from 'viem';
 import { decodeEventLog } from 'viem';
 import { useState } from 'react';
+import assert from 'assert';
 
 const pk = process.env.NEXT_PUBLIC_ACCOUNT_PK as `0x${string}`;
 const account = privateKeyToAccount(pk)
@@ -67,8 +66,8 @@ export default function Home() {
         pubKeyCredParams: [{alg: -7, type: "public-key"}, {alg: -8, type: "public-key"}, {alg: -257, type: "public-key"}],
         user: {
           id: authenticatorUserId,
-          name: "Wallet 7",
-          displayName: "Wallet 7",
+          name: "Wallet 8",
+          displayName: "Wallet 8",
         },
       },
     })
@@ -124,7 +123,6 @@ export default function Home() {
       confirmations: 1
     })
 
-    console.log(txReceipt.logs);
     const firstLog = txReceipt.logs[1];
 
     const decoded = decodeEventLog({
@@ -143,7 +141,7 @@ export default function Home() {
   }
 
   const sendTransaction = async() => {
-    const dw = "0x0F3796A1c708505A0E7CA59B8178f6cE1E743216";
+    const dw = "0x5251f340adc879cb71a88dcf4ec1629c659f9f00"; // Should be retrieved from state.
     const contract = getContract({
       address: dw,
       abi: WEB_AUTHN_ACCOUNT_DATA.abi,
@@ -151,36 +149,16 @@ export default function Home() {
     })
 
     // The account nonce should be used as the challenge, as it's always unique and can be used to verify signature on-chain.
-    const nonce = await contract.read.getNonce();
-
-    console.log(nonce);
-    const nonceStr = (nonce as BigInt).toString();
+    const nonce = (await contract.read.getNonce() as BigInt);
+    const nonceStr = nonce.toString();
     
-    console.log("nonce:", (nonce as BigInt).toString(16));
-
-    const credentialID = await contract.read.getCredentialId();
-    console.log("credentialID", credentialID);
-
-   const assertion = await getWebAuthnAssertion(nonceStr);
-   console.log(assertion);
-
-  // TODO: Move this logic to sdk
-   const authData = assertion.authenticatorData;
-   const clientDataJson = assertion.clientDataJson;
-
-   const authDataBuffer: Uint8Array = toBuffer(authData);
-   const clientDataBuffer: Uint8Array = toBuffer(clientDataJson);
-  
-  const authDataHex = bytesToHex(authDataBuffer);
-  const clientDataHex = bytesToHex(clientDataBuffer);
-
-  const clientDataChallengeOffset = 36;
-  
-  const encodedCallData = encodePacked(
-    ['bytes', 'bytes', 'uint32'], 
-    [`0x${authDataHex}`, `0x${clientDataHex}`, clientDataChallengeOffset]);
-
-  console.log(encodedCallData)
+    const assertion = await getWebAuthnAssertion(nonceStr);
+    const assertionData = await getAssertionHexData(assertion)
+    
+    const encodedCallData = encodeAbiParameters(
+      parseAbiParameters('bytes x, bytes y, uint32 z'),
+      [`0x${assertionData.authDataHex}`, `0x${assertionData.clientDataHex}`, assertionData.clientDataChallengeOffset]
+    );
 
     const signature = await parseSignature(assertion.signature);
 
@@ -192,76 +170,38 @@ export default function Home() {
       ]
     )
 
-    /**
-     * struct UserOperation {
-
-        address sender;
-        uint256 nonce;
-        bytes initCode;
-        bytes callData;
-        uint256 callGasLimit;
-        uint256 verificationGasLimit;
-        uint256 preVerificationGas;
-        uint256 maxFeePerGas;
-        uint256 maxPriorityFeePerGas;
-        bytes paymasterAndData;
-        bytes signature;
-    }
-     */
-
-    console.log(dw);
+    const userOpData = [
+      dw,
+      nonce as any,
+      '0x1',
+      encodedCallData,
+      BigInt(1),
+      BigInt(1),
+      BigInt(1),
+      BigInt(1),
+      BigInt(1),
+      '0x1',
+      encodedSignature
+    ];
     const encodedUserOp = encodePacked(
       ['address', 'uint256', 'bytes', 'bytes', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'bytes', 'bytes'], 
-      [
-        dw,
-        nonce as any,
-        '0x1',
-        encodedCallData,
-        BigInt(1),
-        BigInt(1),
-        BigInt(1),
-        BigInt(1),
-        BigInt(1),
-        '0x1',
-        encodedSignature
-      ]
+      userOpData as any
     )
+
+    const { result } = await publicClient.simulateContract({
+      address: dw,
+      abi: WEB_AUTHN_ACCOUNT_DATA.abi,
+      functionName: 'validateUserOp',
+      args: [
+        userOpData, 
+        keccak256(encodedUserOp), 
+        1
+      ],
+      account: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789' // simulate call from entry point
+    })
   
-    console.log(encodedUserOp);
-
-    const res = await contract.write.validateUserOp([encodedUserOp, keccak256(encodedUserOp), '0x0']);
-    console.log(res);
-
-    // const options = {
-    //   method: 'POST',
-    //   headers: {accept: 'application/json', 'content-type': 'application/json'},
-    //   body: JSON.stringify({
-    //     id: 1,
-    //     jsonrpc: '2.0',
-    //     method: 'eth_sendUserOperation',
-    //     params: [
-    //       {
-    //         sender: dw,
-    //         nonce: `0x${(nonce as BigInt).toString(16)}`,
-    //         initCode: '0x',
-    //         callData: encodedCallData,
-    //         callGasLimit: '0x7A1200',
-    //         verificationGasLimit: '0x927C0',
-    //         preVerificationGas: '0x15F90',
-    //         maxFeePerGas: '0x656703D00',
-    //         maxPriorityFeePerGas: '0x13AB6680',
-    //         signature: encodedSignature,
-    //         paymasterAndData: '0x'
-    //       },
-    //       '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789'
-    //     ]
-    //   })
-    // };
-    
-    // fetch(process.env.NEXT_PUBLIC_RPC_URL as string, options)
-    //   .then(response => response.json())
-    //   .then(response => console.log(response))
-    //   .catch(err => console.error(err));
+    assert((result as BigInt).toString() == '0', 'Invalid signature');
+    console.log("UserOp simulated successfully");
   }
 
   return (
