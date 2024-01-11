@@ -1,9 +1,9 @@
 import 'dotenv/config'
 import WEB_AUTHN_ACCOUNT_FACTORY_DATA from './abis/WebAuthnAccountFactory.json';
 
-import { createPublicClient, createWalletClient, custom } from 'viem'
+import { createPublicClient, createWalletClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { polygonMumbai, sepolia } from 'viem/chains'
+import { polygonMumbai } from 'viem/chains'
 import { http } from 'viem'
 
 const walletClient = createWalletClient({
@@ -16,13 +16,16 @@ const publicClient = createPublicClient({
   transport: http(process.env.RPC_URL) 
 })
 
-
 const account = privateKeyToAccount(process.env.ACCOUNT_PK as `0x${string}`)
 
+/**
+ * A simple script for deploying a WebAuthnAccountFactory. The factory needs to be deployed only once.
+ * 
+ * Note: We have deployed the factory on Polygon Mumbai at this address: 0x0ba01a08e4aa5df44f8e1bbbe6f0e2e10a7cf1ac
+ */
 export async function main() {
 
     console.log('Deploying WebAuthnAccountFactory...');
-
     
     const hash = await walletClient.deployContract({
         abi: WEB_AUTHN_ACCOUNT_FACTORY_DATA.abi,

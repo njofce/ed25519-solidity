@@ -38,6 +38,11 @@ You can use the code in the example in your apps to deploy WebAuthnAccount walle
 
 ## MFA smart accounts
 
-This repo contains a simple example for MFAAccount smart contract, which provides the foundation for validating sec256r1 signature on-chain using a precomputed table for public key parameters, as well as managing the devices. However, any project can provide a different implementation for this and doesn't necessarily need to follow any guidelines, but only use the provided primitives from our repo as a starting point.
+This repo contains a simple example for MFAAccount smart contract, which provides the foundation for validating sec256r1 signature on-chain using a precomputed table for public key parameters, as well as managing the devices. However, any project can provide a different implementation for this and doesn't necessarily need to follow any guidelines, but only use the provided primitives from this repo as a starting point.
+
+This smart contract provides the primitives for:
+1. Adding a device as a second factor for validating a sec256r1 signature on-chain. This will deploy the precomputations bytecode on chain, and store the address.
+2. Validating a signature from that device.
+3. Removing the device, only by providing a valid signature.
 
 We intend to build this as a validator in zerodev smart contract accounts: [ZeroDev Validator](https://github.com/zerodevapp/kernel/tree/main/src/validator)

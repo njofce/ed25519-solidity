@@ -11,6 +11,10 @@ import { AsnParser } from "@peculiar/asn1-schema";
 const EC = elliptic.ec;
 const ec = new EC("p256");
 
+/**
+ * Return a WebAuthn attestation based on the browser's capabilities and the provided options for the public key parameters.
+ * 
+ */
 export async function getWebAuthnAttestation(
     options: CredentialCreationOptions
   ): Promise<WebAuthnAttestation> {
@@ -25,6 +29,9 @@ export async function getWebAuthnAttestation(
     return toInternalAttestation(res.toJSON());
 }
 
+/**
+ * Extract the public key from the attestation object and return the x & y coordinates in hex format.
+ */
 export async function getPublicKey(attestationObject: string): Promise<PublicKey> {
     const decodedAttestationObj =  cbor.decodeAllSync(toBuffer(attestationObject));
 
@@ -59,6 +66,9 @@ export async function getPublicKey(attestationObject: string): Promise<PublicKey
     }
 }
 
+/**
+ * For a given challenge, trigger a signature by the WebAuthn device if the browser supports it, and return the raw signature payload.
+ */
 export async function getWebAuthnAssertion(challenge: string, options?: CredentialRequestConfig): Promise<WebAuthnSignaturePayload> {
     const webAuthnSupported = hasWebAuthnSupport();
   
@@ -79,6 +89,9 @@ export async function getWebAuthnAssertion(challenge: string, options?: Credenti
     return signaturePayload;
 }
 
+/**
+ * Encode the assertion auth & clientDataJSON into hex format.
+ */
 export async function getAssertionHexData(assertion: WebAuthnSignaturePayload): Promise<WebAuthnAuthSignatureData> {
 
   const authData = assertion.authenticatorData;
@@ -99,6 +112,9 @@ export async function getAssertionHexData(assertion: WebAuthnSignaturePayload): 
   }
 } 
 
+/**
+ * Parse signature from ASN1 format into RS representation in hex format.
+ */
 export async function parseSignature(signature: string): Promise<Signature> {
     const parsedSignature = AsnParser.parse(
         toBuffer(signature),
@@ -121,6 +137,9 @@ export async function parseSignature(signature: string): Promise<Signature> {
     }
 }
 
+/**
+ * Return the hex representation of the signed message hash by the authenticator device.
+ */
 export async function getMessageHash(authenticatorData: string, clientDataJSON: string): Promise<string> {
     const clientDataHash = toHash(toBuffer(clientDataJSON));
     const authDataBuffer: Uint8Array = toBuffer(authenticatorData);

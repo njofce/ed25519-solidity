@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
 import "./static/Structs.sol";
@@ -33,7 +33,8 @@ interface IMFAAccount {
      */
     function removeCredential(
         AuthenticatorAssertionResponse memory _assertionResponse,
-        P256Signature memory _signature
+        P256Signature memory _signature,
+        string memory _challenge
     ) external;
 
     /**
@@ -43,13 +44,6 @@ interface IMFAAccount {
     function getCredentailId() external view returns (string memory);
 
     /**
-     *
-     * @notice Returns the unique challenge that will be used for generating the webauthn assertion. It's usually the account nonce, but it can be anything else unique per transaction to avoid repatability attacks.
-     * @return bytes the bytes representation of the challenge
-     */
-    function getChallenge() external view returns (bytes memory);
-
-    /**
      * @notice  Validate WebAuthn credential signature based on the data from the assertion. Throws an error if signature is invalid.
      * @param   _assertionResponse  The message hash.
      * @param   _signature  The provided WebAuthn signature.
@@ -57,6 +51,7 @@ interface IMFAAccount {
      */
     function isValidCredentialSignature(
         AuthenticatorAssertionResponse memory _assertionResponse,
-        P256Signature memory _signature
+        P256Signature memory _signature,
+        string memory _challenge
     ) external returns (bytes4);
 }

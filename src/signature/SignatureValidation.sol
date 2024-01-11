@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
 import "../static/Base64URL.sol";
@@ -28,10 +28,11 @@ library SignatureValidation {
             assertion.clientChallengeDataOffset
         );
 
-        // // 2. Build message hash from device auth data
+        // 2. Build message hash from device auth data
         bytes memory verifyData = new bytes(
             assertion.authenticatorData.length + 32
         );
+
         _copyBytes(
             assertion.authenticatorData,
             0,

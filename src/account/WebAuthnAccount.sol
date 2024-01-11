@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
@@ -13,6 +13,9 @@ import "../signature/SignatureValidation.sol";
 import "../static/Structs.sol";
 import "../static/Base64URL.sol";
 
+/// @title WebAuthn Account
+/// @author nasi
+/// @notice A smart contract account with optimised on-chain sec256r1 verification on chain.
 contract WebAuthnAccount is IAccount, Initializable {
     using UserOperationLib for UserOperation;
 
@@ -48,10 +51,16 @@ contract WebAuthnAccount is IAccount, Initializable {
         return entryPoint().getNonce(address(this), _nonceKeyId);
     }
 
+    /**
+     * Return the WebAuthn device credential ID associated with this smart contract account.
+     */
     function getCredentialId() public view returns (string memory) {
         return _credentialId;
     }
 
+    /**
+     * Return the Precomputations contract address associated with this smart contract account.
+     */
     function getPrecomputationsAddress() public view returns (address) {
         return _precomputationsAddress;
     }
@@ -101,6 +110,11 @@ contract WebAuthnAccount is IAccount, Initializable {
         _payPrefund(missingAccountFunds);
     }
 
+    /**
+    *
+    * Validate a signature generated from a WebAuthn device, where the account nonce is used as a challenge.
+    *
+    */
     function _validateSignature(
         UserOperation calldata userOp,
         bytes32 _userOpHash

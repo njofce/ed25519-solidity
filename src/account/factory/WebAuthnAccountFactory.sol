@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
 /**
@@ -10,10 +10,9 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "../WebAuthnAccount.sol";
 
-/**
- *
- * This factory needs to be deployed just once at the beginning, and then used for creation of WebAuthn Wallets.
- */
+/// @title WebAuthn Account Factory
+/// @author nasi
+/// @notice This factory needs to be deployed just once at the beginning, and then used for creation of WebAuthn Wallets.
 contract WebAuthnAccountFactory {
     WebAuthnAccount public immutable accountImplementation;
 
@@ -21,6 +20,11 @@ contract WebAuthnAccountFactory {
         accountImplementation = new WebAuthnAccount(_entryPoint);
     }
 
+    /// @notice Create a WebAuthnAccount by deploying Precomputations bytecode first.
+    /// @param devicePublicKey The byte representation of the WebAuthn device public key.
+    /// @param credentialId The generated credential ID from the WebAuthn device.
+    /// @param precomputationsInitCode The init bytecode for precomputations that will be used to be deployed as a separate contract.
+    /// @return The deployed WebAuthn account
     function createAccount(
         bytes memory devicePublicKey,
         string memory credentialId,
@@ -61,11 +65,21 @@ contract WebAuthnAccountFactory {
         );
     }
 
+    /// @notice Deterministically compute the address where the Precomputations bytecode will be deployed.
+    /// @param credentialId The generated credential ID from the WebAuthn device.
+    /// @param precomputationsInitCode The init bytecode for precomputations that will be used to be deployed as a separate contract.
+    /// @return The Precomputations address
     function getPrecomputationsAddress(string memory credentialId, bytes memory precomputationsInitCode) public view returns (address) {
         bytes32 salt = keccak256(bytes(credentialId));
         return Create2.computeAddress(salt, keccak256(abi.encodePacked(precomputationsInitCode)));
     }
 
+    /// @notice Deterministically compute the address where the WebAuthn account will be deployed.
+    /// @param devicePublicKey The byte representation of the WebAuthn device public key.
+    /// @param credentialId The generated credential ID from the WebAuthn device.
+    /// @param precomputationsAddress The address where precomputations are deployed as a separate contract.
+    /// @param salt A unique salt which is computed as keccak256(bytes(credentialId)).
+    /// @return The Precomputations address
     function getAddress(
         bytes memory devicePublicKey,
         string memory credentialId,

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
 import "./IMFAAccount.sol";
@@ -9,14 +9,11 @@ import "./signature/SignatureValidation.sol";
 
 /**
  * @title   WebAuthnMFAAccount.
- * @notice  A base implementation.
+ * @notice  This contract should serve as an example for integrating MFA capabilities into a smart contract account 
+ * where a second factor of authentication is a WebAuthn device. It provides the necessary constructs for adding/removing 
+ * devices with the valid signature
  */
-
-// TODO: We need a proxy-based deployment for this.
-// TODO: We need an example factory for deploying this contract alongside the AA account contract.
-// TODO: We need to provide UserOp callData examples that specify adding of a device, removing a device, and validating device signature
-
-abstract contract WebAuthnMFAAccount is IMFAAccount {
+contract WebAuthnMFAAccount is IMFAAccount {
     string public constant name = "WebAuthnMFAAccount";
 
     // bytes4(keccak256("isValidCredentialSignature(AuthenticatorAssertionResponse,P256Signature)")
@@ -80,15 +77,15 @@ abstract contract WebAuthnMFAAccount is IMFAAccount {
 
     function removeCredential(
         AuthenticatorAssertionResponse memory _assertionResponse,
-        P256Signature memory _signature
+        P256Signature memory _signature,
+        string memory _challenge
     ) external onlyOwner {
         if (keccak256(bytes(_credentialId)) == keccak256(bytes(NULL))) {
             revert CredentialNotConnected();
         }
 
-        // TODO: Validate device signature
         if (
-            isValidCredentialSignature(_assertionResponse, _signature) !=
+            isValidCredentialSignature(_assertionResponse, _signature, _challenge) !=
             MAGICVALUE
         ) {
             revert InvalidCredentialSignature();
@@ -101,17 +98,16 @@ abstract contract WebAuthnMFAAccount is IMFAAccount {
         return _credentialId;
     }
 
-    function getChallenge() external view virtual returns (string memory);
-
     function isValidCredentialSignature(
         AuthenticatorAssertionResponse memory _assertionResponse,
-        P256Signature memory _signature
+        P256Signature memory _signature,
+        string memory _challenge
     ) public returns (bytes4) {
         bool isValid = SignatureValidation.isSignatureValid(
             _signature,
             _assertionResponse,
             _precomputationsAddress,
-            abi.encodePacked(getChallenge())
+            abi.encodePacked(_challenge)
         );
         if (isValid) {
             return MAGICVALUE;
