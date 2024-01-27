@@ -4,12 +4,12 @@ pragma solidity ^0.8.13;
 import "./static/Structs.sol";
 
 /**
- * @title   IMFAAccount.
+ * @title   IWebAuthnAddOn.
  * @notice  The base interface for smart contract accounts that need to perform multi-factor authorization. The first authentication factor is not fixed, and can be EOA signature validation.
- * The second authentication factor is a WebAuthn credential signature.
+ * The second authentication factor is a WebAuthn credential signature, which can be used as an add-on.
  */
 
-interface IMFAAccount {
+interface IWebAuthnAddOn {
     /**
      * @notice  Initialize the MFA account.
      * @param   _owner  Address of the owner account.

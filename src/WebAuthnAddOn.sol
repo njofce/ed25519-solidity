@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
-import "./IMFAAccount.sol";
+import "./IWebAuthnAddOn.sol";
 import "./static/Structs.sol";
 import "./cryptography/WrapECDSAPrecalculations.sol";
 import "./signature/KeyPrecomputations.sol";
 import "./signature/SignatureValidation.sol";
 
 /**
- * @title   WebAuthnMFAAccount.
+ * @title   WebAuthnAddOn.
  * @notice  This contract should serve as an example for integrating MFA capabilities into a smart contract account 
  * where a second factor of authentication is a WebAuthn device. It provides the necessary constructs for adding/removing 
  * devices with the valid signature
  */
-contract WebAuthnMFAAccount is IMFAAccount {
-    string public constant name = "WebAuthnMFAAccount";
+contract WebAuthnAddOn is IWebAuthnAddOn {
+    string public constant name = "WebAuthnAddOn";
 
     // bytes4(keccak256("isValidCredentialSignature(AuthenticatorAssertionResponse,P256Signature)")
     bytes4 internal constant MAGICVALUE = 0xae16b27e; 
